@@ -5,6 +5,8 @@ import (
 	"log"
 	"os"
 	"time"
+	"path/filepath"
+	"strings"
 )
 
 type Helper struct {
@@ -15,10 +17,11 @@ type Helper struct {
 get es config
  */
 func (h *Helper) GetConfig(section string, key string)  string {
-	cfg,err := ini.InsensitiveLoad("config.ini");
+	cfg,err := ini.InsensitiveLoad(h.GetCurrentDirectory()+"/config.ini");
 	if err != nil{
-		return "";
+		return err.Error();
 	}
+
 	return cfg.Section(section).Key(key).Value()
 }
 
@@ -26,7 +29,7 @@ func (h *Helper) GetConfig(section string, key string)  string {
 write es log
  */
 func (h *Helper) Log(message string, level string)  {
-	fileName := "tmp/"+ level+"_" + time.Now().Format("2006-01-02")+"_.log"
+	fileName := h.GetCurrentDirectory()+ "/tmp/"+ level+"_" + time.Now().Format("2006-01-02")+"_.log"
 	logFile,err  := os.Create(fileName)
 	defer logFile.Close()
 	if err != nil {
@@ -34,4 +37,12 @@ func (h *Helper) Log(message string, level string)  {
 	}
 	logInfo := log.New(logFile,"",log.LstdFlags)
 	logInfo.Println(message);
+}
+
+func (h *Helper) GetCurrentDirectory() string {
+	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	if(err != nil){
+		return ""
+	}
+	return strings.Replace(dir, "\\", "/", -1)
 }

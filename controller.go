@@ -6,9 +6,14 @@ type Routs struct {
 	a string
 }
 
+type ControllerInterface interface{
+	Begin()
+	After()
+	Display()
+}
+
 type Controller struct {
-	Layout string
-	Routs *Routs
+
 }
 
 
