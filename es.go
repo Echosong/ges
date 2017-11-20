@@ -4,44 +4,62 @@ import (
 	"net/http"
 	"strings"
 	"reflect"
-	"fmt"
 )
 
 type Application struct {
-	Static string
+	Static     string
 	DirCurrent string
-	Helper Helper
+	Helper     Helper
 }
-
 
 type Context struct {
-	W http.ResponseWriter
-	R *http.Request
+	Response http.ResponseWriter
+	Request *http.Request
 }
 
-var App  = &Application{}
-var RouterMaps  map[string] ControllerInterface
-var Cx  = &Context{}
+var App = &Application{}
+var routerMaps = make(map[string]ControllerInterface)
+var Cx = &Context{}
 
-func autoRoute(w http.ResponseWriter, r *http.Request)  {
-	defer func(){
-		if err:=recover();err!=nil{
+func autoRoute(w http.ResponseWriter, r *http.Request) {
+	defer func() {
+		if err := recover(); err != nil {
 			w.Write([]byte("internal error"))
-			fmt.Println(err)
+			App.Helper.Log(err, "error")
 		}
 	}()
-	requestPath := r.URL.Path
-	paths := strings.Split(requestPath, "/");
-	rootPath := paths[1]+"/"+paths[2];
-	controller := RouterMaps[rootPath]
-	Cx.R = r
-	Cx.W = w
-	if(controller != nil){
-		methodName := strings.Trim(paths[3]," ");
-		rs :=[]rune(methodName)
-		methodName = strings.ToUpper(string(rs[0:1]))+string(rs[1:])
-		reflect.ValueOf(controller).MethodByName(methodName).Call([]reflect.Value{})
-	}else{
+
+	requestPath := strings.Trim(r.URL.Path," ")
+	reqRs :=[]rune(requestPath);
+	if string(reqRs[len(reqRs)-1:]) == "/"{
+		requestPath += "Index"
+	}
+	paths := strings.Split( requestPath, "/")
+	var controller ControllerInterface
+	methodName := paths[len(paths)-1];
+	for r,v := range routerMaps{
+		r = "/"+r+"/"+methodName
+		if strings.ToLower(r) == strings.ToLower(requestPath){
+			controller = v
+			break;
+		}
+	}
+	if controller != nil {
+		rs := []rune(methodName)
+		methodName = strings.ToUpper(string(rs[0:1])) + string(rs[1:])
+		if r.Method == "GET" {
+			methodName = "Get"+methodName
+		}else if r.Method == "POST"{
+			methodName = "Post"+methodName
+		}
+		Cx.Request = r
+		Cx.Response = w
+		instance := reflect.ValueOf(controller)
+		instance.MethodByName("Init").Call([]reflect.Value{})
+		instance.MethodByName("Begin").Call([]reflect.Value{})
+		instance.MethodByName(methodName).Call([]reflect.Value{})
+		instance.MethodByName("After").Call([]reflect.Value{})
+	} else {
 		w.Write([]byte("404 page not found!"))
 	}
 }
@@ -51,17 +69,14 @@ func static(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, file)
 }
 
-func Router(rootpath string, c ControllerInterface){
-	RouterMaps = make(map[string] ControllerInterface)
-	RouterMaps[rootpath] = c
+func Router(rootPath string, c ControllerInterface) {
+	routerMaps[rootPath] = c
 }
 
-func  Run()  {
+func Run() {
 	App.Helper = Helper{}
-	App.DirCurrent = App.Helper.GetCurrentDirectory()
-	App.Static = App.Helper.GetConfig("server","staticPath")
+	App.Static = App.Helper.GetConfig("server", "staticPath")
 	http.HandleFunc("/"+App.Static+"/", static)
-	http.HandleFunc("/" , autoRoute)
-	http.ListenAndServe(App.Helper.GetConfig("server","address"),nil)
+	http.HandleFunc("/", autoRoute)
+	http.ListenAndServe(App.Helper.GetConfig("server", "address"), nil)
 }
-
