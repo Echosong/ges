@@ -13,13 +13,13 @@ type ControllerInterface interface{
 }
 
 type Controller struct {
-
+	Ctx  *Context
 }
 
 
 // Begin runs  before request function execution.
 func (c *Controller) Begin()  {
-
+	c.Ctx = Cx;
 }
 
 // After runs after request function execution.
