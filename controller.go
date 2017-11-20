@@ -43,11 +43,11 @@ func (c *Controller) Init() {
 		c.Routes.c = "default"
 	}
 	if len(paths) == 4 {
-		c.Routes.m = paths[1];
-		c.Routes.c = paths[2];
+		c.Routes.m = paths[1]
+		c.Routes.c = paths[2]
 		c.Routes.a = paths[3]
 	} else if len(paths) == 3 {
-		c.Routes.c = paths[1];
+		c.Routes.c = paths[1]
 		c.Routes.a = paths[2]
 	} else if len(paths) == 2 {
 		c.Routes.a = paths[1]
