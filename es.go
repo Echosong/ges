@@ -29,22 +29,17 @@ func autoRoute(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	requestPath := strings.Trim(r.URL.Path," ")
-	reqRs :=[]rune(requestPath);
-	if string(reqRs[len(reqRs)-1:]) == "/"{
-		requestPath += "Index"
-	}
-	paths := strings.Split( requestPath, "/")
+	routes := App.Helper.GetRoutes(r.URL.Path)
 	var controller ControllerInterface
-	methodName := paths[len(paths)-1];
 	for r,v := range routerMaps{
-		r = "/"+r+"/"+methodName
-		if strings.ToLower(r) == strings.ToLower(requestPath){
+		if strings.ToLower(r) == strings.ToLower(routes.c) || strings.ToLower(r) == strings.ToLower(routes.m+"/"+routes.c) {
 			controller = v
 			break;
 		}
 	}
+
 	if controller != nil {
+		methodName := routes.a;
 		rs := []rune(methodName)
 		methodName = strings.ToUpper(string(rs[0:1])) + string(rs[1:])
 		if r.Method == "GET" {
@@ -75,6 +70,7 @@ func Router(rootPath string, c ControllerInterface) {
 
 func Run() {
 	App.Helper = Helper{}
+	App.DirCurrent = App.Helper.GetCurrentDirectory()
 	App.Static = App.Helper.GetConfig("server", "staticPath")
 	http.HandleFunc("/"+App.Static+"/", static)
 	http.HandleFunc("/", autoRoute)
