@@ -12,22 +12,22 @@ import (
 type Helper struct {
 }
 
-
-//get es config
-func (h *Helper) GetConfig(section string, key string) string {
+func (h *Helper) InitConfig() map[string]interface{} {
 	cfg, err := ini.InsensitiveLoad(h.GetCurrentDirectory() + "/config.ini");
 	if err != nil {
-		return ""
+		return nil
 	}
-	sec, err := cfg.GetSection(section)
-	if err != nil {
-		return ""
+	 config:= make( map[string] interface{})
+	for _,name:= range cfg.SectionStrings(){
+		sec, err := cfg.GetSection(name)
+		if err != nil {
+			continue
+		}
+		for _,keyName := range sec.KeyStrings(){
+			config[name+"."+keyName] = sec.Key(keyName).Value()
+		}
 	}
-	if sec.HasKey(key) {
-		return cfg.Section(section).Key(key).Value()
-	} else {
-		return ""
-	}
+	return config;
 }
 
 //write es log
@@ -56,17 +56,23 @@ func (h *Helper) GetCurrentDirectory() string {
 //init global routes
 func (h *Helper) GetRoutes(urlPath string) Routes {
 	routes := Routes{}
-	routes.m = App.Helper.GetConfig("controller", "m")
-	if routes.m == "" {
+	m := App.Config["controller.m"]
+	if m == nil {
 		routes.m = "web"
+	}else {
+		routes.m = m.(string)
 	}
-	routes.c = App.Helper.GetConfig("controller", "c")
-	if routes.c == "" {
+	c := App.Config["controller.c"]
+	if c == nil {
 		routes.c = "default"
+	}else{
+		routes.c = c.(string)
 	}
-	routes.a = App.Helper.GetConfig("controller", "a")
-	if routes.a == "" {
+	a := App.Config["controller.a"]
+	if a == nil {
 		routes.a = "index"
+	}else {
+		routes.a = a.(string)
 	}
 	if urlPath == "" || urlPath == "/" {
 		urlPath = "/" + routes.m + "/" + routes.c + "/" + routes.a

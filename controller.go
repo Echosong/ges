@@ -28,7 +28,7 @@ type Controller struct {
 // Init generates default values of controller operations.
 func (c *Controller) Init() {
 	c.Layout = "Layout.html"
-	c.Ctx = Cx
+	c.Ctx = App.Context
 	c.Data = make(map[interface{}]interface{})
 	c.Routes = App.Helper.GetRoutes(c.Ctx.Request.URL.Path)
 	c.ViewDir = App.DirCurrent + "/src/view/" + c.Routes.m + "/"

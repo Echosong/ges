@@ -4,12 +4,14 @@ import (
 	"net/http"
 	"strings"
 	"reflect"
+	"fmt"
 )
 
 type Application struct {
-	Static     string
 	DirCurrent string
 	Helper     Helper
+	Config  map[string] interface{}
+	Context *Context
 }
 
 type Context struct {
@@ -19,12 +21,11 @@ type Context struct {
 
 var App = &Application{}
 var routerMaps = make(map[string]ControllerInterface)
-var Cx = &Context{}
 
 func autoRoute(w http.ResponseWriter, r *http.Request) {
 	defer func() {
 		if err := recover(); err != nil {
-			w.Write([]byte("internal error"))
+			fmt.Fprintf(w, "action not fund or Error:[ %S ]",err)
 			App.Helper.Log(err, "error")
 		}
 	}()
@@ -47,8 +48,10 @@ func autoRoute(w http.ResponseWriter, r *http.Request) {
 		}else if r.Method == "POST"{
 			methodName = "Post"+methodName
 		}
-		Cx.Request = r
-		Cx.Response = w
+		cxt := &Context{}
+		cxt.Request = r
+		cxt.Response = w
+		App.Context = cxt
 		instance := reflect.ValueOf(controller)
 		instance.MethodByName("Init").Call([]reflect.Value{})
 		instance.MethodByName("Begin").Call([]reflect.Value{})
@@ -71,8 +74,12 @@ func Router(rootPath string, c ControllerInterface) {
 func Run() {
 	App.Helper = Helper{}
 	App.DirCurrent = App.Helper.GetCurrentDirectory()
-	App.Static = App.Helper.GetConfig("server", "staticPath")
-	http.HandleFunc("/"+App.Static+"/", static)
+	App.Config = App.Helper.InitConfig()
+	var staticPath = App.Config["server.staticPath"]
+	if staticPath == nil{
+		staticPath = "res"
+	}
+	http.HandleFunc("/"+staticPath.(string)+"/", static)
 	http.HandleFunc("/", autoRoute)
-	http.ListenAndServe(App.Helper.GetConfig("server", "address"), nil)
+	http.ListenAndServe(App.Config["server.address"].(string), nil)
 }
